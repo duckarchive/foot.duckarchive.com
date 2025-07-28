@@ -25,9 +25,9 @@ const Archium2WikiPage: React.FC = () => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       // console.log(row);
-      if (/^Справа\s?\d+(\s?[а-я])?$/.test(row)) {
+      if (/^Справа\s?\d+(\s?[а-я])?(\s[а-я]\.\s\d+)?$/.test(row)) {
         const rest = row.split(" ").slice(1);
-        activeKey = rest.join("");
+        activeKey = rest.join("").toUpperCase().trim().replace(/\.|,|\s/g, "");
       } else if (/^\d{4}(-\d{4})?$/.test(row)) {
         if (!result[activeKey]) {
           result[activeKey] = {};
