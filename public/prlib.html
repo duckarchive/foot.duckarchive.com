@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRLIB Stitcher · Букмарклет для обмежених ПК</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            color: #856404;
+        }
+
+        .bookmarklet-box {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            border: 2px dashed #6c757d;
+        }
+
+        .bookmarklet-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin: 10px 0;
+            cursor: move;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+
+        .bookmarklet-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .method-card {
+            background: #e9ecef;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .method-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .keyboard-shortcut {
+            background: #212529;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .feature-badge {
+            display: inline-block;
+            background: #17a2b8;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            margin-left: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .content {
+                padding: 20px;
+            }
+            .bookmarklet-link {
+                font-size: 0.9em;
+                padding: 12px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>🎯 PRLIB Stitcher</h1>
+                <p>Завантаження книг у MAX якості без консолі розробника</p>
+                <p style="font-size: 0.9em; margin-top: 10px;">✅ Працює на ПК з обмеженнями</p>
+            </div>
+
+            <div class="content">
+                <div class="alert-success">
+                    ⭐ <strong>Букмарклет працює навіть коли консоль заблокована!</strong> Просто перетягніть кнопку нижче на панель закладок.
+                </div>
+
+                <!-- ГОЛОВНИЙ БУКМАРКЛЕТ -->
+                <div class="bookmarklet-box">
+                    <h3>🚀 Спосіб 1: Букмарклет (рекомендований)</h3>
+                    <p style="margin: 10px 0; color: #6c757d;">Перетягніть цю кнопку на панель закладок:</p>
+                    <a href="javascript:(function(){const%20TILE_SIZE=256,MAX_CONCURRENT_TILES=8;const%20sleep=ms=>new%20Promise(r=>setTimeout(r,ms));const%20scripts=Array.from(document.querySelectorAll('script'));const%20targetScript=scripts.find(s=>s.textContent&&s.textContent.includes('jQuery.extend')&&s.textContent.includes('diva'));if(!targetScript){alert('❌%20Тег%20script%20не%20знайдено.');return;}let%20bookJson;const%20text=targetScript.textContent;const%20startIdx=text.indexOf('{');try{const%20endIdx=text.indexOf(');',startIdx);bookJson=JSON.parse(text.substring(startIdx,endIdx));}catch(e){let%20bracketCount=0,realEndIdx=-1;for(let%20i=startIdx;i<text.length;i++){if(text[i]==='{')bracketCount++;if(text[i]==='}')bracketCount--;if(bracketCount===0&&text[i]==='}'){realEndIdx=i+1;break;}}try{bookJson=JSON.parse(text.substring(startIdx,realEndIdx));}catch(e2){alert('❌%20Помилка%20синтаксичного%20аналізу%20JSON.');return;}}const%20url=window.location.href;let%20book=url.includes('/item/')?bookJson?.diva?.['1']?.options:bookJson?.diva?.settings;if(!book||!book.objectData){alert('❌%20Не%20вдалося%20знайти%20objectData.');return;}const%20response=await%20fetch(book.objectData);const%20bookData=await%20response.json();const%20pages=bookData.pgs;if(!confirm(`✅%20Знайдено%20${pages.length}%20сторінок.\n\nГотові%20розпочати%20завантаження%20у%20МАКСИМАЛЬНІЙ%20РОЗДІЛЬНІЙ%20ЗДАТНОСТІ?`)){return;}for(let%20pageIdx=0;pageIdx<pages.length;pageIdx++){const%20page=pages[pageIdx];const%20fileName=`${String(pageIdx+1).padStart(5,'0')}.jpg`;const%20maxZoomLevel=page.m;const%20maxRes=page.d[page.d.length-1];const%20maxWidth=maxRes.w;const%20maxHeight=maxRes.h;const%20cols=Math.ceil(maxWidth/TILE_SIZE);const%20rows=Math.ceil(maxHeight/TILE_SIZE);const%20totalTiles=cols*rows;console.log(`📄%20Сторінка%20${pageIdx+1}/${pages.length}%20|%20Розмір:%20${maxWidth}x${maxHeight}%20|%20Фрагментів:%20${totalTiles}`);const%20canvas=document.createElement('canvas');canvas.width=maxWidth;canvas.height=maxHeight;const%20ctx=canvas.getContext('2d');let%20tilesToFetch=[];for(let%20row=0;row<rows;row++){for(let%20col=0;col<cols;col++){const%20tileIndex=row*cols+col;const%20tileUrl=`https://content.prlib.ru/fcgi-bin/iipsrv.fcgi?FIF=${book.imageDir}/${page.f}&JTL=${maxZoomLevel},${tileIndex}`;tilesToFetch.push({url:tileUrl,x:col*TILE_SIZE,y:row*TILE_SIZE,index:tileIndex});}}let%20loadedTiles=0;while(tilesToFetch.length>0){const%20batch=tilesToFetch.splice(0,MAX_CONCURRENT_TILES);await%20Promise.all(batch.map(async(tile)=>{try{const%20res=await%20fetch(tile.url);if(!res.ok)throw%20new%20Error(`HTTP%20${res.status}`);const%20blob=await%20res.blob();const%20imgBitmap=await%20createImageBitmap(blob);ctx.drawImage(imgBitmap,tile.x,tile.y);loadedTiles++;}catch(err){console.error(`❌%20Не%20вдалося%20завантажити%20фрагмент%20${tile.index}`);}}));if(loadedTiles%24===0||loadedTiles===totalTiles){console.log(`⏳%20Склеєно%20${loadedTiles}/${totalTiles}%20фрагментів...`);}await%20sleep(50);}await%20new%20Promise(resolve=>{canvas.toBlob((blob)=>{const%20blobUrl=window.URL.createObjectURL(blob);const%20link=document.createElement('a');link.href=blobUrl;link.download=fileName;document.body.appendChild(link);link.click();document.body.removeChild(link);window.URL.revokeObjectURL(blobUrl);resolve();},'image/jpeg',0.95);});canvas.width=0;canvas.height=0;await%20sleep(1000);}alert('🎉%20Усі%20сторінки%20успішно%20склеєні%20та%20завантажені%20у%20МАКСИМАЛЬНІЙ%20роздільній%20здатності!');})();"
+                       class="bookmarklet-link"
+                       draggable="true"
+                       id="bookmarkletDrag">
+                        ⭐ PRLIB Max-Res Stitcher
+                    </a>
+                    <p style="margin-top: 15px; font-size: 0.85em; color: #6c757d;">
+                        📌 <strong>Як використовувати:</strong> Перетягніть цю кнопку на панель закладок браузера.
+                        Потім відкрийте книгу на prlib.ru і натисніть на цю закладку.
+                    </p>
+                </div>
+
+                <!-- АЛЬТЕРНАТИВНІ МЕТОДИ -->
+                <div class="method-card">
+                    <div class="method-title">
+                        ⌨️ Спосіб 2: Клавіатурний ярлик (якщо букмарклет не працює)
+                        <span class="feature-badge">Працює без миші</span>
+                    </div>
+                    <p>Деякі бібліотечні ПК блокують перетягування, але дозволяють створювати закладки вручну:</p>
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div>Натисніть <kbd>Ctrl+D</kbd> (Windows) або <kbd>Cmd+D</kbd> (Mac)</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div>Назвіть закладку: <strong>PRLIB Stitcher</strong></div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div>В поле "URL" вставте код, який можна скопіювати нижче</div>
+                    </div>
+                    <button class="btn btn-success" id="copyBookmarkletUrl">📋 Скопіювати URL для закладки</button>
+                </div>
+
+                <!-- СКРИПТ ДЛЯ КОПІЮВАННЯ -->
+                <div class="method-card">
+                    <div class="method-title">
+                        📜 Спосіб 3: Адресний рядок (найпростіший для обмежених ПК)
+                    </div>
+                    <p>Якщо панель закладок прихована або заблокована, вставте код в адресний рядок:</p>
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div>Відкрийте книгу на prlib.ru</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div>Натисніть <kbd>Ctrl+L</kbd> (виділити адресний рядок)</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div>Вставте: <code style="background:#f0f0f0; padding:5px;">javascript:КОД_НИЖЧЕ</code></div>
+                    </div>
+                    <button class="btn" id="copyShortCode">📋 Скопіювати короткий код</button>
+                </div>
+
+                <div class="alert-warning">
+                    ⚠️ <strong>Важливо для обмежених ПК:</strong>
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>✅ Букмарклет НЕ потребує адміністративних прав</li>
+                        <li>✅ Не потребує відкриття консолі (F12 часто блокують)</li>
+                        <li>✅ Не залишає слідів в історії консолі</li>
+                        <li>⚠️ Деякі ПК блокують виконання JavaScript через адресний рядок - тоді використовуйте букмарклет</li>
+                    </ul>
+                </div>
+
+                <div style="background: #e8f4f8; border-radius: 12px; padding: 15px; margin-top: 20px;">
+                    <h4>🎯 Покрокова інструкція для бібліотечних ПК:</h4>
+                    <ol style="margin-left: 20px; margin-top: 10px;">
+                        <li><strong>Відкрийте цю сторінку</strong> на будь-якому пристрої (телефон/планшет)</li>
+                        <li><strong>Перетягніть зелену кнопку</strong> на панель закладок (якщо не виходить - скопіюйте URL)</li>
+                        <li><strong>Увійдіть в свій акаунт</strong> на бібліотечному ПК та відкрийте Chrome/Edge</li>
+                        <li><strong>Увійдіть в свій Google акаунт</strong> (якщо дозволено) щоб синхронізувати закладки</li>
+                        <li><strong>АБО вручну створіть закладку</strong> на бібліотечному ПК через Ctrl+D</li>
+                        <li><strong>Відкрийте книгу</strong> на prlib.ru та натисніть на закладку</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Код букмарклету для копіювання
+        const BOOKMARKLET_CODE = `javascript:(function(){const TILE_SIZE=256,MAX_CONCURRENT_TILES=8;const sleep=ms=>new Promise(r=>setTimeout(r,ms));const scripts=Array.from(document.querySelectorAll('script'));const targetScript=scripts.find(s=>s.textContent&&s.textContent.includes('jQuery.extend')&&s.textContent.includes('diva'));if(!targetScript){alert('❌ Тег script не знайдено.');return;}let bookJson;const text=targetScript.textContent;const startIdx=text.indexOf('{');try{const endIdx=text.indexOf(');',startIdx);bookJson=JSON.parse(text.substring(startIdx,endIdx));}catch(e){let bracketCount=0,realEndIdx=-1;for(let i=startIdx;i<text.length;i++){if(text[i]==='{')bracketCount++;if(text[i]==='}')bracketCount--;if(bracketCount===0&&text[i]==='}'){realEndIdx=i+1;break;}}try{bookJson=JSON.parse(text.substring(startIdx,realEndIdx));}catch(e2){alert('❌ Помилка синтаксичного аналізу JSON.');return;}}const url=window.location.href;let book=url.includes('/item/')?bookJson?.diva?.['1']?.options:bookJson?.diva?.settings;if(!book||!book.objectData){alert('❌ Не вдалося знайти objectData.');return;}const response=await fetch(book.objectData);const bookData=await response.json();const pages=bookData.pgs;if(!confirm(\`✅ Знайдено \${pages.length} сторінок.\\n\\nГотові розпочати завантаження у МАКСИМАЛЬНІЙ РОЗДІЛЬНІЙ ЗДАТНОСТІ?\`)){return;}for(let pageIdx=0;pageIdx<pages.length;pageIdx++){const page=pages[pageIdx];const fileName=\`\${String(pageIdx+1).padStart(5,'0')}.jpg\`;const maxZoomLevel=page.m;const maxRes=page.d[page.d.length-1];const maxWidth=maxRes.w;const maxHeight=maxRes.h;const cols=Math.ceil(maxWidth/TILE_SIZE);const rows=Math.ceil(maxHeight/TILE_SIZE);const totalTiles=cols*rows;console.log(\`📄 Сторінка \${pageIdx+1}/\${pages.length} | Розмір: \${maxWidth}x\${maxHeight} | Фрагментів: \${totalTiles}\`);const canvas=document.createElement('canvas');canvas.width=maxWidth;canvas.height=maxHeight;const ctx=canvas.getContext('2d');let tilesToFetch=[];for(let row=0;row<rows;row++){for(let col=0;col<cols;col++){const tileIndex=row*cols+col;const tileUrl=\`https://content.prlib.ru/fcgi-bin/iipsrv.fcgi?FIF=\${book.imageDir}/\${page.f}&JTL=\${maxZoomLevel},\${tileIndex}\`;tilesToFetch.push({url:tileUrl,x:col*TILE_SIZE,y:row*TILE_SIZE,index:tileIndex});}}let loadedTiles=0;while(tilesToFetch.length>0){const batch=tilesToFetch.splice(0,MAX_CONCURRENT_TILES);await Promise.all(batch.map(async(tile)=>{try{const res=await fetch(tile.url);if(!res.ok)throw new Error(\`HTTP \${res.status}\`);const blob=await res.blob();const imgBitmap=await createImageBitmap(blob);ctx.drawImage(imgBitmap,tile.x,tile.y);loadedTiles++;}catch(err){console.error(\`❌ Не вдалося завантажити фрагмент \${tile.index}\`);}}));if(loadedTiles%24===0||loadedTiles===totalTiles){console.log(\`⏳ Склеєно \${loadedTiles}/\${totalTiles} фрагментів...\`);}await sleep(50);}await new Promise(resolve=>{canvas.toBlob((blob)=>{const blobUrl=window.URL.createObjectURL(blob);const link=document.createElement('a');link.href=blobUrl;link.download=fileName;document.body.appendChild(link);link.click();document.body.removeChild(link);window.URL.revokeObjectURL(blobUrl);resolve();},'image/jpeg',0.95);});canvas.width=0;canvas.height=0;await sleep(1000);}alert('🎉 Усі сторінки успішно склеєні та завантажені у МАКСИМАЛЬНІЙ роздільній здатності!');})();`;
+
+        // Скорочений код для адресного рядка
+        const SHORT_CODE = `javascript:(async()=>{const T=256,M=8,s=ms=>new Promise(r=>setTimeout(r,ms));const t=Array.from(document.querySelectorAll('script')).find(s=>s.textContent&&s.textContent.includes('jQuery.extend')&&s.textContent.includes('diva'));if(!t){alert('❌ Помилка');return;}let b;const txt=t.textContent;const i=txt.indexOf('{');try{b=JSON.parse(txt.substring(i,txt.indexOf(');',i)));}catch(e){let c=0,end=-1;for(let x=i;x<txt.length;x++){if(txt[x]==='{')c++;if(txt[x]==='}')c--;if(c===0&&txt[x]==='}'){end=x+1;break;}}b=JSON.parse(txt.substring(i,end));}const u=window.location.href;let book=u.includes('/item/')?b?.diva?.['1']?.options:b?.diva?.settings;if(!book?.objectData){alert('❌ objectData');return;}const r=await fetch(book.objectData);const d=await r.json();const p=d.pgs;if(!confirm(\`✅ \${p.length} сторінок. Почати?\`))return;for(let idx=0;idx<p.length;idx++){const pg=p[idx];const fn=\`\${String(idx+1).padStart(5,'0')}.jpg\`;const z=pg.m;const mr=pg.d[pg.d.length-1];const w=mr.w,h=mr.h;const cols=Math.ceil(w/T),rows=Math.ceil(h/T);const cvs=document.createElement('canvas');cvs.width=w;cvs.height=h;const ctx=cvs.getContext('2d');let tiles=[];for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){const ti=row*cols+col;tiles.push({url:\`https://content.prlib.ru/fcgi-bin/iipsrv.fcgi?FIF=\${book.imageDir}/\${pg.f}&JTL=\${z},\${ti}\`,x:col*T,y:row*T});}let loaded=0;while(tiles.length){const batch=tiles.splice(0,M);await Promise.all(batch.map(async tile=>{const res=await fetch(tile.url);if(res.ok){const img=await createImageBitmap(await res.blob());ctx.drawImage(img,tile.x,tile.y);loaded++;}}));if(loaded%24===0||loaded===cols*rows)console.log(\`\${loaded}/\${cols*rows}\`);await s(50);}await new Promise(res=>cvs.toBlob(blob=>{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);res();},'image/jpeg',0.95));await s(1000);}alert('Готово!');})();`;
+
+        // Копіювання URL для закладки
+        document.getElementById('copyBookmarkletUrl').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(BOOKMARKLET_CODE);
+                const btn = document.getElementById('copyBookmarkletUrl');
+                const original = btn.innerHTML;
+                btn.innerHTML = '✅ Скопійовано!';
+                setTimeout(() => btn.innerHTML = original, 2000);
+                alert('✅ Код скопійовано! Тепер:\n1. Натисніть Ctrl+D\n2. В поле URL вставте скопійований код\n3. Збережіть закладку');
+            } catch(err) {
+                alert('❌ Помилка копіювання');
+            }
+        });
+
+        // Копіювання короткого коду
+        document.getElementById('copyShortCode').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(SHORT_CODE);
+                const btn = document.getElementById('copyShortCode');
+                const original = btn.innerHTML;
+                btn.innerHTML = '✅ Скопійовано!';
+                setTimeout(() => btn.innerHTML = original, 2000);
+                alert('✅ Короткий код скопійовано! Вставте його в адресний рядок після Ctrl+L');
+            } catch(err) {
+                alert('❌ Помилка копіювання');
+            }
+        });
+
+        // Інструкція для перетягування
+        const bookmarklet = document.getElementById('bookmarkletDrag');
+        bookmarklet.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', BOOKMARKLET_CODE);
+            e.dataTransfer.effectAllowed = 'copy';
+        });
+    </script>
+</body>
+</html>
