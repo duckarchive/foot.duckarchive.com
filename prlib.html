@@ -176,6 +176,48 @@
             margin-left: 10px;
         }
 
+        .config-section {
+            background: #f1f3f5;
+            border: 1px solid #dee2e6;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .config-section h3 {
+            margin-bottom: 12px;
+            color: #495057;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .config-grid label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.85em;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        .config-grid input[type="number"] {
+            margin-top: 4px;
+            padding: 8px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        .config-grid input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+
         @media (max-width: 600px) {
             .content {
                 padding: 20px;
@@ -191,7 +233,7 @@
     <div class="container">
         <div class="card">
             <div class="header">
-                <h1>🎯 PRLIB Stitcher v1.0.0</h1>
+                <h1>🎯 PRLIB Stitcher v1.0.1</h1>
                 <p>Завантаження книг у MAX якості без консолі розробника</p>
                 <p style="font-size: 0.9em; margin-top: 10px;">✅ Працює на ПК з обмеженнями</p>
             </div>
@@ -201,11 +243,33 @@
                     ⭐ <strong>Букмарклет працює навіть коли консоль заблокована!</strong> Просто перетягніть кнопку нижче на панель закладок.
                 </div>
 
+                <!-- НАЛАШТУВАННЯ -->
+                <div class="config-section">
+                    <h3>⚙️ Налаштування</h3>
+                    <p style="font-size: 0.85em; color: #6c757d; margin-bottom: 12px;">
+                        Змінюй значення — вони автоматично застосуються до всіх букмарклетів нижче.
+                    </p>
+                    <div class="config-grid">
+                        <label>
+                            MAX_CONCURRENT_TILES
+                            <input type="number" id="cfgMaxConcurrentTiles" value="3" min="1" max="64" step="1">
+                        </label>
+                        <label>
+                            MAX_RETRIES
+                            <input type="number" id="cfgMaxRetries" value="3" min="1" max="20" step="1">
+                        </label>
+                        <label>
+                            MAX_CONCURRENT_PAGES
+                            <input type="number" id="cfgMaxConcurrentPages" value="1" min="1" max="32" step="1">
+                        </label>
+                    </div>
+                </div>
+
                 <!-- ГОЛОВНИЙ БУКМАРКЛЕТ -->
                 <div class="bookmarklet-box">
                     <h3>🚀 Спосіб 1: Букмарклет (рекомендований)</h3>
                     <p style="margin: 10px 0; color: #6c757d;">Перетягніть цю кнопку на панель закладок:</p>
-                    <a href="javascript:(async%20function(){try{const%20TILE_SIZE=256,MAX_CONCURRENT_TILES=3,MAX_RETRIES=3,MAX_CONCURRENT_PAGES=1;const%20baseUrl=window.location.origin==='https://cud.prlib.ru'?'https://cud.prlib.ru/private-content/fcgi-bin/iipsrv.fcgi':'https://content.prlib.ru/fcgi-bin/iipsrv.fcgi';const%20sleep=ms=>new%20Promise(r=>setTimeout(r,ms));const%20scripts=Array.from(document.querySelectorAll('script'));const%20targetScript=scripts.find(s=>s.textContent&&s.textContent.includes('jQuery.extend')&&s.textContent.includes('diva'));if(!targetScript){alert('❌%20Тег%20script%20не%20знайдено.');return;}let%20bookJson;const%20text=targetScript.textContent;const%20startIdx=text.indexOf('{');try{const%20endIdx=text.indexOf(');',startIdx);bookJson=JSON.parse(text.substring(startIdx,endIdx));}catch(e){let%20bracketCount=0,realEndIdx=-1;for(let%20i=startIdx;i<text.length;i++){if(text[i]==='{')bracketCount++;if(text[i]==='}')bracketCount--;if(bracketCount===0&&text[i]==='}'){realEndIdx=i+1;break;}}try{bookJson=JSON.parse(text.substring(startIdx,realEndIdx));}catch(e2){alert('❌%20Помилка%20синтаксичного%20аналізу%20JSON.');return;}}const%20url=window.location.href;let%20book=url.includes('/item/')?bookJson?.diva?.['1']?.options:bookJson?.diva?.settings;if(!book||!book.objectData){alert('❌%20Не%20вдалося%20знайти%20objectData.');return;}const%20response=await%20fetch(book.objectData);const%20bookData=await%20response.json();const%20pages=bookData.pgs;if(!confirm(`✅%20Знайдено%20${pages.length}%20сторінок.\n\nГотові%20розпочати%20завантаження%20у%20МАКСИМАЛЬНІЙ%20РОЗДІЛЬНІЙ%20ЗДАТНОСТІ?\n\nВерсія:%20v1.0.0`)){return;}const%20pageQueue=pages.map((_,i)=>i);const%20processPage=async(pageIdx)=>{const%20page=pages[pageIdx];const%20fileName=`${String(pageIdx+1).padStart(5,'0')}.jpg`;const%20maxZoomLevel=page.m;const%20maxRes=page.d[page.d.length-1];const%20maxWidth=maxRes.w;const%20maxHeight=maxRes.h;const%20cols=Math.ceil(maxWidth/TILE_SIZE);const%20rows=Math.ceil(maxHeight/TILE_SIZE);const%20totalTiles=cols*rows;console.log(`📄%20Сторінка%20${pageIdx+1}/${pages.length}%20|%20Розмір:%20${maxWidth}x${maxHeight}%20|%20Фрагментів:%20${totalTiles}`);const%20canvas=document.createElement('canvas');canvas.width=maxWidth;canvas.height=maxHeight;const%20ctx=canvas.getContext('2d');let%20tilesToFetch=[];for(let%20row=0;row<rows;row++){for(let%20col=0;col<cols;col++){const%20tileIndex=row*cols+col;const%20tileUrl=`${baseUrl}?FIF=${book.imageDir}/${page.f}&JTL=${maxZoomLevel},${tileIndex}&CVT=JPEG`;tilesToFetch.push({url:tileUrl,x:col*TILE_SIZE,y:row*TILE_SIZE,index:tileIndex});}}let%20loadedTiles=0;while(tilesToFetch.length>0){const%20batch=tilesToFetch.splice(0,MAX_CONCURRENT_TILES);await%20Promise.all(batch.map(async(tile)=>{for(let%20attempt=0;attempt<MAX_RETRIES;attempt++){try{const%20res=await%20fetch(tile.url,{credentials:'include',headers:{'Accept':'image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5'}});if(!res.ok)throw%20new%20Error(`HTTP%20${res.status}`);const%20blob=await%20res.blob();const%20imgBitmap=await%20createImageBitmap(blob);ctx.drawImage(imgBitmap,tile.x,tile.y);loadedTiles++;return;}catch(err){if(attempt<MAX_RETRIES-1){await%20sleep(Math.random()*1000);}else{console.error(`❌%20Фрагмент%20${tile.index}%20не%20завантажено%20після%20${MAX_RETRIES}%20спроб:%20${err.message}`);}}}}));if(loadedTiles===totalTiles){console.log(`⏳%20Склеєно%20${loadedTiles}/${totalTiles}%20фрагментів...`);}await%20sleep(50);}await%20new%20Promise(resolve=>{canvas.toBlob((blob)=>{const%20blobUrl=window.URL.createObjectURL(blob);const%20link=document.createElement('a');link.href=blobUrl;link.download=fileName;document.body.appendChild(link);link.click();document.body.removeChild(link);window.URL.revokeObjectURL(blobUrl);resolve();},'image/jpeg',0.95);});canvas.width=0;canvas.height=0;};await%20Promise.all(Array(MAX_CONCURRENT_PAGES).fill(0).map(async()=>{while(pageQueue.length>0){const%20idx=pageQueue.shift();if(idx===undefined)return;await%20processPage(idx);}}));alert('🎉%20Усі%20сторінки%20успішно%20склеєні%20та%20завантажені%20у%20МАКСИМАЛЬНІЙ%20роздільній%20здатності!\n\nВерсія:%20v1.0.0');}catch(err){console.error(err);alert('❌%20Помилка:%20'+(err&&err.message?err.message:err)+'\n\n'+(err&&err.stack?err.stack:''));}})();"
+                    <a href="javascript:void(0)"
                        class="bookmarklet-link"
                        draggable="true"
                        id="bookmarkletDrag">
@@ -260,6 +324,24 @@
                     <button class="btn" id="copyShortCode">📋 Скопіювати короткий код</button>
                 </div>
 
+                <!-- IMG-BASED БУКМАРКЛЕТ -->
+                <div class="bookmarklet-box" style="border-color: #17a2b8;">
+                    <h3>🧪 Спосіб 4: Букмарклет img-based (експериментальний)</h3>
+                    <p style="margin: 10px 0; color: #6c757d;">Завантажує тайли через <code>&lt;img&gt;</code> замість <code>fetch()</code> — матчить <code>Sec-Fetch-Dest: image</code> оригінального сайту. Спробуй, якщо звичайний букмарклет повертає 403.</p>
+                    <a href="javascript:void(0)"
+                       class="bookmarklet-link"
+                       draggable="true"
+                       id="bookmarkletDragImg"
+                       style="background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);">
+                        🧪 PRLIB Max-Res Stitcher (img)
+                    </a>
+                    <p style="margin-top: 15px; font-size: 0.85em; color: #6c757d;">
+                        📌 Перетягніть кнопку на панель закладок. Якщо перетягування не працює — використай кнопки нижче:
+                    </p>
+                    <button class="btn btn-success" id="copyBookmarkletUrlImg">📋 Скопіювати URL (img)</button>
+                    <button class="btn" id="copyShortCodeImg">📋 Скопіювати короткий код (img)</button>
+                </div>
+
                 <div class="alert-warning">
                     ⚠️ <strong>Важливо для обмежених ПК:</strong>
                     <ul style="margin-top: 10px; margin-left: 20px;">
@@ -287,10 +369,41 @@
 
     <script>
         // Код букмарклету для копіювання
-        const BOOKMARKLET_CODE = `javascript:(async function(){try{const TILE_SIZE=256,MAX_CONCURRENT_TILES=3,MAX_RETRIES=3,MAX_CONCURRENT_PAGES=1;const baseUrl=window.location.origin==='https://cud.prlib.ru'?'https://cud.prlib.ru/private-content/fcgi-bin/iipsrv.fcgi':'https://content.prlib.ru/fcgi-bin/iipsrv.fcgi';const sleep=ms=>new Promise(r=>setTimeout(r,ms));const scripts=Array.from(document.querySelectorAll('script'));const targetScript=scripts.find(s=>s.textContent&&s.textContent.includes('jQuery.extend')&&s.textContent.includes('diva'));if(!targetScript){alert('❌ Тег script не знайдено.');return;}let bookJson;const text=targetScript.textContent;const startIdx=text.indexOf('{');try{const endIdx=text.indexOf(');',startIdx);bookJson=JSON.parse(text.substring(startIdx,endIdx));}catch(e){let bracketCount=0,realEndIdx=-1;for(let i=startIdx;i<text.length;i++){if(text[i]==='{')bracketCount++;if(text[i]==='}')bracketCount--;if(bracketCount===0&&text[i]==='}'){realEndIdx=i+1;break;}}try{bookJson=JSON.parse(text.substring(startIdx,realEndIdx));}catch(e2){alert('❌ Помилка синтаксичного аналізу JSON.');return;}}const url=window.location.href;let book=url.includes('/item/')?bookJson?.diva?.['1']?.options:bookJson?.diva?.settings;if(!book||!book.objectData){alert('❌ Не вдалося знайти objectData.');return;}const response=await fetch(book.objectData);const bookData=await response.json();const pages=bookData.pgs;if(!confirm(\`✅ Знайдено \${pages.length} сторінок.\\n\\nГотові розпочати завантаження у МАКСИМАЛЬНІЙ РОЗДІЛЬНІЙ ЗДАТНОСТІ?\\n\\nВерсія: v1.0.0\`)){return;}const pageQueue=pages.map((_,i)=>i);const processPage=async(pageIdx)=>{const page=pages[pageIdx];const fileName=\`\${String(pageIdx+1).padStart(5,'0')}.jpg\`;const maxZoomLevel=page.m;const maxRes=page.d[page.d.length-1];const maxWidth=maxRes.w;const maxHeight=maxRes.h;const cols=Math.ceil(maxWidth/TILE_SIZE);const rows=Math.ceil(maxHeight/TILE_SIZE);const totalTiles=cols*rows;console.log(\`📄 Сторінка \${pageIdx+1}/\${pages.length} | Розмір: \${maxWidth}x\${maxHeight} | Фрагментів: \${totalTiles}\`);const canvas=document.createElement('canvas');canvas.width=maxWidth;canvas.height=maxHeight;const ctx=canvas.getContext('2d');let tilesToFetch=[];for(let row=0;row<rows;row++){for(let col=0;col<cols;col++){const tileIndex=row*cols+col;const tileUrl=\`\${baseUrl}?FIF=\${book.imageDir}/\${page.f}&JTL=\${maxZoomLevel},\${tileIndex}&CVT=JPEG\`;tilesToFetch.push({url:tileUrl,x:col*TILE_SIZE,y:row*TILE_SIZE,index:tileIndex});}}let loadedTiles=0;while(tilesToFetch.length>0){const batch=tilesToFetch.splice(0,MAX_CONCURRENT_TILES);await Promise.all(batch.map(async(tile)=>{for(let attempt=0;attempt<MAX_RETRIES;attempt++){try{const res=await fetch(tile.url,{credentials:'include',headers:{'Accept':'image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5'}});if(!res.ok)throw new Error(\`HTTP \${res.status}\`);const blob=await res.blob();const imgBitmap=await createImageBitmap(blob);ctx.drawImage(imgBitmap,tile.x,tile.y);loadedTiles++;return;}catch(err){if(attempt<MAX_RETRIES-1){await sleep(Math.random()*1000);}else{console.error(\`❌ Фрагмент \${tile.index} не завантажено після \${MAX_RETRIES} спроб: \${err.message}\`);}}}}));if(loadedTiles===totalTiles){console.log(\`⏳ Склеєно \${loadedTiles}/\${totalTiles} фрагментів...\`);}await sleep(50);}await new Promise(resolve=>{canvas.toBlob((blob)=>{const blobUrl=window.URL.createObjectURL(blob);const link=document.createElement('a');link.href=blobUrl;link.download=fileName;document.body.appendChild(link);link.click();document.body.removeChild(link);window.URL.revokeObjectURL(blobUrl);resolve();},'image/jpeg',0.95);});canvas.width=0;canvas.height=0;};await Promise.all(Array(MAX_CONCURRENT_PAGES).fill(0).map(async()=>{while(pageQueue.length>0){const idx=pageQueue.shift();if(idx===undefined)return;await processPage(idx);}}));alert('🎉 Усі сторінки успішно склеєні та завантажені у МАКСИМАЛЬНІЙ роздільній здатності!\\n\\nВерсія: v1.0.0');}catch(err){console.error(err);alert('❌ Помилка: '+(err&&err.message?err.message:err)+'\\n\\n'+(err&&err.stack?err.stack:''));}})();`;
+        const BOOKMARKLET_TEMPLATE = `javascript:(async function(){try{const TILE_SIZE=__TS__,MAX_CONCURRENT_TILES=__MCT__,MAX_RETRIES=__MR__,MAX_CONCURRENT_PAGES=__MCP__;const baseUrl=window.location.origin==='https://cud.prlib.ru'?'https://cud.prlib.ru/private-content/fcgi-bin/iipsrv.fcgi':'https://content.prlib.ru/fcgi-bin/iipsrv.fcgi';const sleep=ms=>new Promise(r=>setTimeout(r,ms));const scripts=Array.from(document.querySelectorAll('script'));const targetScript=scripts.find(s=>s.textContent&&s.textContent.includes('jQuery.extend')&&s.textContent.includes('diva'));if(!targetScript){alert('❌ Тег script не знайдено.');return;}let bookJson;const text=targetScript.textContent;const startIdx=text.indexOf('{');try{const endIdx=text.indexOf(');',startIdx);bookJson=JSON.parse(text.substring(startIdx,endIdx));}catch(e){let bracketCount=0,realEndIdx=-1;for(let i=startIdx;i<text.length;i++){if(text[i]==='{')bracketCount++;if(text[i]==='}')bracketCount--;if(bracketCount===0&&text[i]==='}'){realEndIdx=i+1;break;}}try{bookJson=JSON.parse(text.substring(startIdx,realEndIdx));}catch(e2){alert('❌ Помилка синтаксичного аналізу JSON.');return;}}const url=window.location.href;let book=url.includes('/item/')?bookJson?.diva?.['1']?.options:bookJson?.diva?.settings;if(!book||!book.objectData){alert('❌ Не вдалося знайти objectData.');return;}const response=await fetch(book.objectData);const bookData=await response.json();const pages=bookData.pgs;if(!confirm(\`✅ Знайдено \${pages.length} сторінок.\\n\\nГотові розпочати завантаження у МАКСИМАЛЬНІЙ РОЗДІЛЬНІЙ ЗДАТНОСТІ?\\n\\nВерсія: v1.0.1\`)){return;}const pageQueue=pages.map((_,i)=>i);const processPage=async(pageIdx)=>{const page=pages[pageIdx];const fileName=\`\${String(pageIdx+1).padStart(5,'0')}.jpg\`;const maxZoomLevel=page.m;const maxRes=page.d[page.d.length-1];const maxWidth=maxRes.w;const maxHeight=maxRes.h;const cols=Math.ceil(maxWidth/TILE_SIZE);const rows=Math.ceil(maxHeight/TILE_SIZE);const totalTiles=cols*rows;console.log(\`📄 Сторінка \${pageIdx+1}/\${pages.length} | Розмір: \${maxWidth}x\${maxHeight} | Фрагментів: \${totalTiles}\`);const canvas=document.createElement('canvas');canvas.width=maxWidth;canvas.height=maxHeight;const ctx=canvas.getContext('2d');let tilesToFetch=[];for(let row=0;row<rows;row++){for(let col=0;col<cols;col++){const tileIndex=row*cols+col;const tileUrl=\`\${baseUrl}?FIF=\${book.imageDir}/\${page.f}&JTL=\${maxZoomLevel},\${tileIndex}&CVT=JPEG\`;tilesToFetch.push({url:tileUrl,x:col*TILE_SIZE,y:row*TILE_SIZE,index:tileIndex});}}let loadedTiles=0;while(tilesToFetch.length>0){const batch=tilesToFetch.splice(0,MAX_CONCURRENT_TILES);await Promise.all(batch.map(async(tile)=>{for(let attempt=0;attempt<MAX_RETRIES;attempt++){try{const res=await fetch(tile.url,{credentials:'include',headers:{'Accept':'image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5'}});if(!res.ok)throw new Error(\`HTTP \${res.status}\`);const blob=await res.blob();const imgBitmap=await createImageBitmap(blob);ctx.drawImage(imgBitmap,tile.x,tile.y);loadedTiles++;return;}catch(err){if(attempt<MAX_RETRIES-1){await sleep(Math.random()*1000);}else{console.error(\`❌ Фрагмент \${tile.index} не завантажено після \${MAX_RETRIES} спроб: \${err.message}\`);}}}}));if(loadedTiles===totalTiles){console.log(\`⏳ Склеєно \${loadedTiles}/\${totalTiles} фрагментів...\`);}await sleep(50);}await new Promise(resolve=>{canvas.toBlob((blob)=>{const blobUrl=window.URL.createObjectURL(blob);const link=document.createElement('a');link.href=blobUrl;link.download=fileName;document.body.appendChild(link);link.click();document.body.removeChild(link);window.URL.revokeObjectURL(blobUrl);resolve();},'image/jpeg',0.95);});canvas.width=0;canvas.height=0;};await Promise.all(Array(MAX_CONCURRENT_PAGES).fill(0).map(async()=>{while(pageQueue.length>0){const idx=pageQueue.shift();if(idx===undefined)return;await processPage(idx);}}));alert('🎉 Усі сторінки успішно склеєні та завантажені у МАКСИМАЛЬНІЙ роздільній здатності!\\n\\nВерсія: v1.0.1');}catch(err){console.error(err);alert('❌ Помилка: '+(err&&err.message?err.message:err)+'\\n\\n'+(err&&err.stack?err.stack:''));}})();`;
 
         // Скорочений код для адресного рядка
-        const SHORT_CODE = `javascript:(async()=>{try{const T=256,M=3,P=1,B=window.location.origin==='https://cud.prlib.ru'?'https://cud.prlib.ru/private-content/fcgi-bin/iipsrv.fcgi':'https://content.prlib.ru/fcgi-bin/iipsrv.fcgi',s=ms=>new Promise(r=>setTimeout(r,ms));const t=Array.from(document.querySelectorAll('script')).find(s=>s.textContent&&s.textContent.includes('jQuery.extend')&&s.textContent.includes('diva'));if(!t){alert('❌ Помилка');return;}let b;const txt=t.textContent;const i=txt.indexOf('{');try{b=JSON.parse(txt.substring(i,txt.indexOf(');',i)));}catch(e){let c=0,end=-1;for(let x=i;x<txt.length;x++){if(txt[x]==='{')c++;if(txt[x]==='}')c--;if(c===0&&txt[x]==='}'){end=x+1;break;}}b=JSON.parse(txt.substring(i,end));}const u=window.location.href;let book=u.includes('/item/')?b?.diva?.['1']?.options:b?.diva?.settings;if(!book?.objectData){alert('❌ objectData');return;}const r=await fetch(book.objectData);const d=await r.json();const p=d.pgs;if(!confirm(\`✅ \${p.length} сторінок. Почати?\\nv1.0.0\`))return;const pq=p.map((_,i)=>i);const pp=async(idx)=>{const pg=p[idx];const fn=\`\${String(idx+1).padStart(5,'0')}.jpg\`;const z=pg.m;const mr=pg.d[pg.d.length-1];const w=mr.w,h=mr.h;const cols=Math.ceil(w/T),rows=Math.ceil(h/T);const cvs=document.createElement('canvas');cvs.width=w;cvs.height=h;const ctx=cvs.getContext('2d');let tiles=[];for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){const ti=row*cols+col;tiles.push({url:\`\${B}?FIF=\${book.imageDir}/\${pg.f}&JTL=\${z},\${ti}&CVT=JPEG\`,x:col*T,y:row*T});}let loaded=0;while(tiles.length){const batch=tiles.splice(0,M);await Promise.all(batch.map(async tile=>{for(let a=0;a<3;a++){try{const res=await fetch(tile.url,{credentials:'include',headers:{'Accept':'image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5'}});if(!res.ok)throw 0;const img=await createImageBitmap(await res.blob());ctx.drawImage(img,tile.x,tile.y);loaded++;return;}catch(e){if(a<2)await s(Math.random()*1000);}}}));if(loaded===cols*rows)console.log(\`\${loaded}/\${cols*rows}\`);await s(50);}await new Promise(res=>cvs.toBlob(blob=>{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);res();},'image/jpeg',0.95));};await Promise.all(Array(P).fill(0).map(async()=>{while(pq.length){const i=pq.shift();if(i===undefined)return;await pp(i);}}));alert('Готово! v1.0.0');}catch(err){console.error(err);alert('❌ '+(err&&err.message?err.message:err)+'\\n'+(err&&err.stack?err.stack:''));}})();`;
+        const SHORT_TEMPLATE = `javascript:(async()=>{try{const T=__TS__,M=__MCT__,P=__MCP__,B=window.location.origin==='https://cud.prlib.ru'?'https://cud.prlib.ru/private-content/fcgi-bin/iipsrv.fcgi':'https://content.prlib.ru/fcgi-bin/iipsrv.fcgi',s=ms=>new Promise(r=>setTimeout(r,ms));const t=Array.from(document.querySelectorAll('script')).find(s=>s.textContent&&s.textContent.includes('jQuery.extend')&&s.textContent.includes('diva'));if(!t){alert('❌ Помилка');return;}let b;const txt=t.textContent;const i=txt.indexOf('{');try{b=JSON.parse(txt.substring(i,txt.indexOf(');',i)));}catch(e){let c=0,end=-1;for(let x=i;x<txt.length;x++){if(txt[x]==='{')c++;if(txt[x]==='}')c--;if(c===0&&txt[x]==='}'){end=x+1;break;}}b=JSON.parse(txt.substring(i,end));}const u=window.location.href;let book=u.includes('/item/')?b?.diva?.['1']?.options:b?.diva?.settings;if(!book?.objectData){alert('❌ objectData');return;}const r=await fetch(book.objectData);const d=await r.json();const p=d.pgs;if(!confirm(\`✅ \${p.length} сторінок. Почати?\\nv1.0.1\`))return;const pq=p.map((_,i)=>i);const pp=async(idx)=>{const pg=p[idx];const fn=\`\${String(idx+1).padStart(5,'0')}.jpg\`;const z=pg.m;const mr=pg.d[pg.d.length-1];const w=mr.w,h=mr.h;const cols=Math.ceil(w/T),rows=Math.ceil(h/T);const cvs=document.createElement('canvas');cvs.width=w;cvs.height=h;const ctx=cvs.getContext('2d');let tiles=[];for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){const ti=row*cols+col;tiles.push({url:\`\${B}?FIF=\${book.imageDir}/\${pg.f}&JTL=\${z},\${ti}&CVT=JPEG\`,x:col*T,y:row*T});}let loaded=0;while(tiles.length){const batch=tiles.splice(0,M);await Promise.all(batch.map(async tile=>{for(let a=0;a<__MR__;a++){try{const res=await fetch(tile.url,{credentials:'include',headers:{'Accept':'image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5'}});if(!res.ok)throw 0;const img=await createImageBitmap(await res.blob());ctx.drawImage(img,tile.x,tile.y);loaded++;return;}catch(e){if(a<__MRM1__)await s(Math.random()*1000);}}}));if(loaded===cols*rows)console.log(\`\${loaded}/\${cols*rows}\`);await s(50);}await new Promise(res=>cvs.toBlob(blob=>{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);res();},'image/jpeg',0.95));};await Promise.all(Array(P).fill(0).map(async()=>{while(pq.length){const i=pq.shift();if(i===undefined)return;await pp(i);}}));alert('Готово! v1.0.1');}catch(err){console.error(err);alert('❌ '+(err&&err.message?err.message:err)+'\\n'+(err&&err.stack?err.stack:''));}})();`;
+
+        // Img-based букмарклет (матчить Sec-Fetch-Dest: image)
+        const BOOKMARKLET_TEMPLATE_IMG = `javascript:(async function(){try{const TILE_SIZE=__TS__,MAX_CONCURRENT_TILES=__MCT__,MAX_RETRIES=__MR__,MAX_CONCURRENT_PAGES=__MCP__;const baseUrl=window.location.origin==='https://cud.prlib.ru'?'https://cud.prlib.ru/private-content/fcgi-bin/iipsrv.fcgi':'https://content.prlib.ru/fcgi-bin/iipsrv.fcgi';const sleep=ms=>new Promise(r=>setTimeout(r,ms));const scripts=Array.from(document.querySelectorAll('script'));const targetScript=scripts.find(s=>s.textContent&&s.textContent.includes('jQuery.extend')&&s.textContent.includes('diva'));if(!targetScript){alert('❌ Тег script не знайдено.');return;}let bookJson;const text=targetScript.textContent;const startIdx=text.indexOf('{');try{const endIdx=text.indexOf(');',startIdx);bookJson=JSON.parse(text.substring(startIdx,endIdx));}catch(e){let bracketCount=0,realEndIdx=-1;for(let i=startIdx;i<text.length;i++){if(text[i]==='{')bracketCount++;if(text[i]==='}')bracketCount--;if(bracketCount===0&&text[i]==='}'){realEndIdx=i+1;break;}}try{bookJson=JSON.parse(text.substring(startIdx,realEndIdx));}catch(e2){alert('❌ Помилка синтаксичного аналізу JSON.');return;}}const url=window.location.href;let book=url.includes('/item/')?bookJson?.diva?.['1']?.options:bookJson?.diva?.settings;if(!book||!book.objectData){alert('❌ Не вдалося знайти objectData.');return;}const response=await fetch(book.objectData);const bookData=await response.json();const pages=bookData.pgs;if(!confirm(\`✅ Знайдено \${pages.length} сторінок.\\n\\nГотові розпочати завантаження (img-based)?\\n\\nВерсія: v1.0.1\`)){return;}const pageQueue=pages.map((_,i)=>i);const processPage=async(pageIdx)=>{const page=pages[pageIdx];const fileName=\`\${String(pageIdx+1).padStart(5,'0')}.jpg\`;const maxZoomLevel=page.m;const maxRes=page.d[page.d.length-1];const maxWidth=maxRes.w;const maxHeight=maxRes.h;const cols=Math.ceil(maxWidth/TILE_SIZE);const rows=Math.ceil(maxHeight/TILE_SIZE);const totalTiles=cols*rows;console.log(\`📄 Сторінка \${pageIdx+1}/\${pages.length} | Розмір: \${maxWidth}x\${maxHeight} | Фрагментів: \${totalTiles}\`);const canvas=document.createElement('canvas');canvas.width=maxWidth;canvas.height=maxHeight;const ctx=canvas.getContext('2d');let tilesToFetch=[];for(let row=0;row<rows;row++){for(let col=0;col<cols;col++){const tileIndex=row*cols+col;const tileUrl=\`\${baseUrl}?FIF=\${book.imageDir}/\${page.f}&JTL=\${maxZoomLevel},\${tileIndex}&CVT=JPEG\`;tilesToFetch.push({url:tileUrl,x:col*TILE_SIZE,y:row*TILE_SIZE,index:tileIndex});}}let loadedTiles=0;while(tilesToFetch.length>0){const batch=tilesToFetch.splice(0,MAX_CONCURRENT_TILES);await Promise.all(batch.map(async(tile)=>{for(let attempt=0;attempt<MAX_RETRIES;attempt++){try{const img=await new Promise((ok,no)=>{const im=new Image();im.crossOrigin='use-credentials';im.onload=()=>ok(im);im.onerror=()=>no(new Error('image load failed'));im.src=tile.url;});ctx.drawImage(img,tile.x,tile.y);loadedTiles++;return;}catch(err){if(attempt<MAX_RETRIES-1){await sleep(Math.random()*1000);}else{console.error(\`❌ Фрагмент \${tile.index} не завантажено після \${MAX_RETRIES} спроб: \${err.message}\`);}}}}));if(loadedTiles===totalTiles){console.log(\`⏳ Склеєно \${loadedTiles}/\${totalTiles} фрагментів...\`);}await sleep(50);}await new Promise(resolve=>{canvas.toBlob((blob)=>{const blobUrl=window.URL.createObjectURL(blob);const link=document.createElement('a');link.href=blobUrl;link.download=fileName;document.body.appendChild(link);link.click();document.body.removeChild(link);window.URL.revokeObjectURL(blobUrl);resolve();},'image/jpeg',0.95);});canvas.width=0;canvas.height=0;};await Promise.all(Array(MAX_CONCURRENT_PAGES).fill(0).map(async()=>{while(pageQueue.length>0){const idx=pageQueue.shift();if(idx===undefined)return;await processPage(idx);}}));alert('🎉 Усі сторінки склеєні та завантажені (img-based)!\\n\\nВерсія: v1.0.1');}catch(err){console.error(err);alert('❌ Помилка: '+(err&&err.message?err.message:err)+'\\n\\n'+(err&&err.stack?err.stack:''));}})();`;
+
+        const SHORT_TEMPLATE_IMG = `javascript:(async()=>{try{const T=__TS__,M=__MCT__,P=__MCP__,B=window.location.origin==='https://cud.prlib.ru'?'https://cud.prlib.ru/private-content/fcgi-bin/iipsrv.fcgi':'https://content.prlib.ru/fcgi-bin/iipsrv.fcgi',s=ms=>new Promise(r=>setTimeout(r,ms));const t=Array.from(document.querySelectorAll('script')).find(s=>s.textContent&&s.textContent.includes('jQuery.extend')&&s.textContent.includes('diva'));if(!t){alert('❌ Помилка');return;}let b;const txt=t.textContent;const i=txt.indexOf('{');try{b=JSON.parse(txt.substring(i,txt.indexOf(');',i)));}catch(e){let c=0,end=-1;for(let x=i;x<txt.length;x++){if(txt[x]==='{')c++;if(txt[x]==='}')c--;if(c===0&&txt[x]==='}'){end=x+1;break;}}b=JSON.parse(txt.substring(i,end));}const u=window.location.href;let book=u.includes('/item/')?b?.diva?.['1']?.options:b?.diva?.settings;if(!book?.objectData){alert('❌ objectData');return;}const r=await fetch(book.objectData);const d=await r.json();const p=d.pgs;if(!confirm(\`✅ \${p.length} сторінок (img). Почати?\\nv1.0.1\`))return;const pq=p.map((_,i)=>i);const pp=async(idx)=>{const pg=p[idx];const fn=\`\${String(idx+1).padStart(5,'0')}.jpg\`;const z=pg.m;const mr=pg.d[pg.d.length-1];const w=mr.w,h=mr.h;const cols=Math.ceil(w/T),rows=Math.ceil(h/T);const cvs=document.createElement('canvas');cvs.width=w;cvs.height=h;const ctx=cvs.getContext('2d');let tiles=[];for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){const ti=row*cols+col;tiles.push({url:\`\${B}?FIF=\${book.imageDir}/\${pg.f}&JTL=\${z},\${ti}&CVT=JPEG\`,x:col*T,y:row*T});}let loaded=0;while(tiles.length){const batch=tiles.splice(0,M);await Promise.all(batch.map(async tile=>{for(let a=0;a<__MR__;a++){try{const img=await new Promise((ok,no)=>{const im=new Image();im.crossOrigin='use-credentials';im.onload=()=>ok(im);im.onerror=()=>no(0);im.src=tile.url;});ctx.drawImage(img,tile.x,tile.y);loaded++;return;}catch(e){if(a<__MRM1__)await s(Math.random()*1000);}}}));if(loaded===cols*rows)console.log(\`\${loaded}/\${cols*rows}\`);await s(50);}await new Promise(res=>cvs.toBlob(blob=>{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);res();},'image/jpeg',0.95));};await Promise.all(Array(P).fill(0).map(async()=>{while(pq.length){const i=pq.shift();if(i===undefined)return;await pp(i);}}));alert('Готово (img)! v1.0.1');}catch(err){console.error(err);alert('❌ '+(err&&err.message?err.message:err)+'\\n'+(err&&err.stack?err.stack:''));}})();`;
+
+        let BOOKMARKLET_CODE, BOOKMARKLET_CODE_IMG, SHORT_CODE, SHORT_CODE_IMG;
+
+        function applyConfig() {
+            const ts = 256;
+            const mct = Math.max(1, parseInt(document.getElementById('cfgMaxConcurrentTiles').value, 10) || 3);
+            const mr = Math.max(1, parseInt(document.getElementById('cfgMaxRetries').value, 10) || 3);
+            const mcp = Math.max(1, parseInt(document.getElementById('cfgMaxConcurrentPages').value, 10) || 1);
+            const subst = s => s
+                .replaceAll('__TS__', ts)
+                .replaceAll('__MCT__', mct)
+                .replaceAll('__MRM1__', mr - 1)
+                .replaceAll('__MR__', mr)
+                .replaceAll('__MCP__', mcp);
+            BOOKMARKLET_CODE = subst(BOOKMARKLET_TEMPLATE);
+            BOOKMARKLET_CODE_IMG = subst(BOOKMARKLET_TEMPLATE_IMG);
+            SHORT_CODE = subst(SHORT_TEMPLATE);
+            SHORT_CODE_IMG = subst(SHORT_TEMPLATE_IMG);
+            document.getElementById('bookmarkletDrag').href = BOOKMARKLET_CODE;
+            document.getElementById('bookmarkletDragImg').href = BOOKMARKLET_CODE_IMG;
+        }
+
+        ['cfgMaxConcurrentTiles', 'cfgMaxRetries', 'cfgMaxConcurrentPages'].forEach(id => {
+            document.getElementById(id).addEventListener('input', applyConfig);
+        });
+        applyConfig();
 
         // Копіювання URL для закладки
         document.getElementById('copyBookmarkletUrl').addEventListener('click', async () => {
@@ -324,6 +437,41 @@
         const bookmarklet = document.getElementById('bookmarkletDrag');
         bookmarklet.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('text/plain', BOOKMARKLET_CODE);
+            e.dataTransfer.effectAllowed = 'copy';
+        });
+
+        // Копіювання URL (img-based)
+        document.getElementById('copyBookmarkletUrlImg').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(BOOKMARKLET_CODE_IMG);
+                const btn = document.getElementById('copyBookmarkletUrlImg');
+                const original = btn.innerHTML;
+                btn.innerHTML = '✅ Скопійовано!';
+                setTimeout(() => btn.innerHTML = original, 2000);
+                alert('✅ Код (img-based) скопійовано! Тепер:\n1. Натисніть Ctrl+D\n2. В поле URL вставте скопійований код\n3. Збережіть закладку');
+            } catch(err) {
+                alert('❌ Помилка копіювання');
+            }
+        });
+
+        // Копіювання короткого коду (img-based)
+        document.getElementById('copyShortCodeImg').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(SHORT_CODE_IMG);
+                const btn = document.getElementById('copyShortCodeImg');
+                const original = btn.innerHTML;
+                btn.innerHTML = '✅ Скопійовано!';
+                setTimeout(() => btn.innerHTML = original, 2000);
+                alert('✅ Короткий код (img-based) скопійовано! Вставте його в адресний рядок після Ctrl+L');
+            } catch(err) {
+                alert('❌ Помилка копіювання');
+            }
+        });
+
+        // Перетягування img-based букмарклету
+        const bookmarkletImg = document.getElementById('bookmarkletDragImg');
+        bookmarkletImg.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', BOOKMARKLET_CODE_IMG);
             e.dataTransfer.effectAllowed = 'copy';
         });
     </script>
