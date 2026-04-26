@@ -316,26 +316,459 @@
                         <li><strong>Відкрийте книгу</strong> на prlib.ru</li>
                         <li><strong>Натисніть на закладку</strong> — розпочнеться завантаження</li>
                     </ol>
+                    <h4 style="margin-top: 15px;">📦 Пакетний режим (черга <code>window.prlib_queue</code>):</h4>
+                    <ol style="margin-left: 20px; margin-top: 10px;">
+                        <li>Відкрий будь-яку сторінку <code>prlib.ru</code> та консоль (якщо доступна) або інший букмарклет, що задає змінну.</li>
+                        <li>Запиши у <code>window.prlib_queue</code> багаторядковий TSV (роздільник <code>\t</code>) з колонками:
+                            <code>prlib_id&nbsp;inventory_id&nbsp;file_id&nbsp;title</code>.</li>
+                        <li>Натисни букмарклет — поточна сторінка ігнорується, кожен елемент черги обробиться по черзі.
+                            Файли збережуться як <code>РГИА-577-{inventory_id}-{file_id}__NNN.jpg</code>
+                            (NNN: 001, 002, …). Колонка <code>title</code> у TSV не входить у назву файлу
+                            (щоб ОС не обрізала індекс сторінки), але потрібна як орієнтир для людини.</li>
+                    </ol>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Код букмарклету для копіювання
-        const BOOKMARKLET_TEMPLATE = `javascript:(async function(){try{const TILE_SIZE=__TS__,MAX_CONCURRENT_TILES=__MCT__,MAX_RETRIES=__MR__,MAX_CONCURRENT_PAGES=__MCP__;const baseUrl=window.location.origin==='https://cud.prlib.ru'?'https://cud.prlib.ru/private-content/fcgi-bin/iipsrv.fcgi':'https://content.prlib.ru/fcgi-bin/iipsrv.fcgi';const sleep=ms=>new Promise(r=>setTimeout(r,ms));const scripts=Array.from(document.querySelectorAll('script'));const targetScript=scripts.find(s=>s.textContent&&s.textContent.includes('jQuery.extend')&&s.textContent.includes('diva'));if(!targetScript){alert('❌ Тег script не знайдено.');return;}let bookJson;const text=targetScript.textContent;const startIdx=text.indexOf('{');try{const endIdx=text.indexOf(');',startIdx);bookJson=JSON.parse(text.substring(startIdx,endIdx));}catch(e){let bracketCount=0,realEndIdx=-1;for(let i=startIdx;i<text.length;i++){if(text[i]==='{')bracketCount++;if(text[i]==='}')bracketCount--;if(bracketCount===0&&text[i]==='}'){realEndIdx=i+1;break;}}try{bookJson=JSON.parse(text.substring(startIdx,realEndIdx));}catch(e2){alert('❌ Помилка синтаксичного аналізу JSON.');return;}}const url=window.location.href;let book=url.includes('/item/')?bookJson?.diva?.['1']?.options:bookJson?.diva?.settings;if(!book||!book.objectData){alert('❌ Не вдалося знайти objectData.');return;}const response=await fetch(book.objectData);const bookData=await response.json();const pages=bookData.pgs;const startInput=prompt(\`✅ Знайдено \${pages.length} сторінок.\\nЗ якої сторінки почати? (1 = з початку)\\n\\nВерсія: v1.2.1\`,'1');if(startInput===null){return;}let startPage=parseInt(startInput,10);if(!Number.isFinite(startPage)||startPage<1||startPage>pages.length){startPage=1;}const pageQueue=pages.map((_,i)=>i).slice(startPage-1);const processPage=async(pageIdx)=>{console.time(\`page \${pageIdx+1}\`);const page=pages[pageIdx];const fileName=\`\${String(pageIdx+1).padStart(5,'0')}.jpg\`;const maxZoomLevel=page.m;const maxRes=page.d[page.d.length-1];const maxWidth=maxRes.w;const maxHeight=maxRes.h;const cols=Math.ceil(maxWidth/TILE_SIZE);const rows=Math.ceil(maxHeight/TILE_SIZE);const totalTiles=cols*rows;console.log(\`📄 Сторінка \${pageIdx+1}/\${pages.length} | Розмір: \${maxWidth}x\${maxHeight} | Фрагментів: \${totalTiles}\`);const canvas=document.createElement('canvas');canvas.width=maxWidth;canvas.height=maxHeight;const ctx=canvas.getContext('2d');let tilesToFetch=[];for(let row=0;row<rows;row++){for(let col=0;col<cols;col++){const tileIndex=row*cols+col;const tileUrl=\`\${baseUrl}?FIF=\${book.imageDir}/\${page.f}&JTL=\${maxZoomLevel},\${tileIndex}\`;tilesToFetch.push({url:tileUrl,x:col*TILE_SIZE,y:row*TILE_SIZE,index:tileIndex});}}let loadedTiles=0;const STAGGER_MS=300;await Promise.all(Array(MAX_CONCURRENT_TILES).fill(0).map(async(_,workerIdx)=>{await sleep(workerIdx*STAGGER_MS);let backoff=5000;while(tilesToFetch.length>0){const tile=tilesToFetch.shift();if(tile===undefined)return;tile.attempts=(tile.attempts||0)+1;try{const ac=new AbortController();const tmt=setTimeout(()=>ac.abort(),__RTMS__*tile.attempts);try{const res=await fetch(tile.url,{credentials:'include',signal:ac.signal,headers:{'Accept':'image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5'}});if(!res.ok)throw new Error(\`HTTP \${res.status}\`);const ct=res.headers.get('Content-Type')||'';if(!ct.startsWith('image/'))throw new Error(\`Bad Content-Type: \${ct}\`);const blob=await res.blob();const head=new Uint8Array(await blob.slice(0,3).arrayBuffer());if(head[0]!==0xFF||head[1]!==0xD8||head[2]!==0xFF)throw new Error('Not JPEG (corrupted response)');const imgBitmap=await createImageBitmap(blob);ctx.drawImage(imgBitmap,tile.x,tile.y);loadedTiles++;backoff=Math.max(5000,Math.floor(backoff/2));}finally{clearTimeout(tmt);}}catch(err){const badContent=err.message&&(err.message.startsWith('Bad Content-Type')||err.message.startsWith('Not JPEG'));if(tile.attempts<MAX_RETRIES){tilesToFetch.push(tile);if(badContent){console.warn(\`⚠️ Фрагмент \${tile.index} corrupt — requeued (\${tile.attempts}/\${MAX_RETRIES}), backoff \${backoff}ms\`);await sleep(backoff);backoff=Math.min(backoff*2,30000);}else{await sleep(Math.random()*3000);}}else{console.error(\`❌ Фрагмент \${tile.index} не завантажено після \${MAX_RETRIES} спроб: \${err.message}\`);}}}}));if(loadedTiles===totalTiles){console.log(\`⏳ Склеєно \${loadedTiles}/\${totalTiles} фрагментів...\`);}await new Promise(resolve=>{canvas.toBlob((blob)=>{const blobUrl=window.URL.createObjectURL(blob);const link=document.createElement('a');link.href=blobUrl;link.download=fileName;document.body.appendChild(link);link.click();document.body.removeChild(link);window.URL.revokeObjectURL(blobUrl);resolve();},'image/jpeg',0.95);});canvas.width=0;canvas.height=0;console.timeEnd(\`page \${pageIdx+1}\`);};await Promise.all(Array(MAX_CONCURRENT_PAGES).fill(0).map(async()=>{while(pageQueue.length>0){const idx=pageQueue.shift();if(idx===undefined)return;await processPage(idx);}}));alert('🎉 Усі сторінки успішно склеєні та завантажені у МАКСИМАЛЬНІЙ роздільній здатності!\\n\\nВерсія: v1.2.1');}catch(err){console.error(err);alert('❌ Помилка: '+(err&&err.message?err.message:err)+'\\n\\n'+(err&&err.stack?err.stack:''));}})();`;
+        // ─────────────────────────────────────────────────────────────────
+        // READABLE bookmarklet sources.
+        //
+        // These are normal IIFEs kept here for readability/debuggability.
+        // They are run through `minify()` below before being assigned as
+        // the `href` of the bookmarklet link (with a `javascript:` prefix).
+        //
+        // Placeholders substituted at runtime by `applyConfig()`:
+        //   __TS__   tile size (px)
+        //   __MCT__  MAX_CONCURRENT_TILES
+        //   __MR__   MAX_RETRIES
+        //   __MCP__  MAX_CONCURRENT_PAGES
+        //   __RTMS__ REQUEST_TIMEOUT_MS
+        //   1.2.1 injected at build time by scripts/copy-index.js
+        // ─────────────────────────────────────────────────────────────────
 
-        // Img-based букмарклет (експериментальний — матчить Sec-Fetch-Dest: image)
-        const BOOKMARKLET_TEMPLATE_IMG = `javascript:(async function(){try{const TILE_SIZE=__TS__,MAX_CONCURRENT_TILES=__MCT__,MAX_RETRIES=__MR__,MAX_CONCURRENT_PAGES=__MCP__;const baseUrl=window.location.origin==='https://cud.prlib.ru'?'https://cud.prlib.ru/private-content/fcgi-bin/iipsrv.fcgi':'https://content.prlib.ru/fcgi-bin/iipsrv.fcgi';const sleep=ms=>new Promise(r=>setTimeout(r,ms));const scripts=Array.from(document.querySelectorAll('script'));const targetScript=scripts.find(s=>s.textContent&&s.textContent.includes('jQuery.extend')&&s.textContent.includes('diva'));if(!targetScript){alert('❌ Тег script не знайдено.');return;}let bookJson;const text=targetScript.textContent;const startIdx=text.indexOf('{');try{const endIdx=text.indexOf(');',startIdx);bookJson=JSON.parse(text.substring(startIdx,endIdx));}catch(e){let bracketCount=0,realEndIdx=-1;for(let i=startIdx;i<text.length;i++){if(text[i]==='{')bracketCount++;if(text[i]==='}')bracketCount--;if(bracketCount===0&&text[i]==='}'){realEndIdx=i+1;break;}}try{bookJson=JSON.parse(text.substring(startIdx,realEndIdx));}catch(e2){alert('❌ Помилка синтаксичного аналізу JSON.');return;}}const url=window.location.href;let book=url.includes('/item/')?bookJson?.diva?.['1']?.options:bookJson?.diva?.settings;if(!book||!book.objectData){alert('❌ Не вдалося знайти objectData.');return;}const response=await fetch(book.objectData);const bookData=await response.json();const pages=bookData.pgs;const startInput=prompt(\`✅ Знайдено \${pages.length} сторінок (img-based).\\nЗ якої сторінки почати? (1 = з початку)\\n\\nВерсія: v1.2.1\`,'1');if(startInput===null){return;}let startPage=parseInt(startInput,10);if(!Number.isFinite(startPage)||startPage<1||startPage>pages.length){startPage=1;}const pageQueue=pages.map((_,i)=>i).slice(startPage-1);const processPage=async(pageIdx)=>{console.time(\`page \${pageIdx+1}\`);const page=pages[pageIdx];const fileName=\`\${String(pageIdx+1).padStart(5,'0')}.jpg\`;const maxZoomLevel=page.m;const maxRes=page.d[page.d.length-1];const maxWidth=maxRes.w;const maxHeight=maxRes.h;const cols=Math.ceil(maxWidth/TILE_SIZE);const rows=Math.ceil(maxHeight/TILE_SIZE);const totalTiles=cols*rows;console.log(\`📄 Сторінка \${pageIdx+1}/\${pages.length} | Розмір: \${maxWidth}x\${maxHeight} | Фрагментів: \${totalTiles}\`);const canvas=document.createElement('canvas');canvas.width=maxWidth;canvas.height=maxHeight;const ctx=canvas.getContext('2d');let tilesToFetch=[];for(let row=0;row<rows;row++){for(let col=0;col<cols;col++){const tileIndex=row*cols+col;const tileUrl=\`\${baseUrl}?FIF=\${book.imageDir}/\${page.f}&JTL=\${maxZoomLevel},\${tileIndex}\`;tilesToFetch.push({url:tileUrl,x:col*TILE_SIZE,y:row*TILE_SIZE,index:tileIndex});}}let loadedTiles=0;const STAGGER_MS=300;await Promise.all(Array(MAX_CONCURRENT_TILES).fill(0).map(async(_,workerIdx)=>{await sleep(workerIdx*STAGGER_MS);let backoff=5000;while(tilesToFetch.length>0){const tile=tilesToFetch.shift();if(tile===undefined)return;tile.attempts=(tile.attempts||0)+1;try{let tmt;const img=await new Promise((ok,no)=>{const im=new Image();im.crossOrigin='use-credentials';im.onload=()=>{if(im.naturalWidth===0||im.naturalHeight===0)no(new Error('Not JPEG (broken 0x0)'));else ok(im);};im.onerror=()=>no(new Error('image load failed'));tmt=setTimeout(()=>{im.src='';no(new Error('img timeout'));},__RTMS__*tile.attempts);im.src=tile.url;}).finally(()=>clearTimeout(tmt));ctx.drawImage(img,tile.x,tile.y);loadedTiles++;backoff=Math.max(5000,Math.floor(backoff/2));}catch(err){const badContent=err.message&&(err.message.startsWith('Bad Content-Type')||err.message.startsWith('Not JPEG'));if(tile.attempts<MAX_RETRIES){tilesToFetch.push(tile);if(badContent){console.warn(\`⚠️ Фрагмент \${tile.index} corrupt — requeued (\${tile.attempts}/\${MAX_RETRIES}), backoff \${backoff}ms\`);await sleep(backoff);backoff=Math.min(backoff*2,30000);}else{await sleep(Math.random()*3000);}}else{console.error(\`❌ Фрагмент \${tile.index} не завантажено після \${MAX_RETRIES} спроб: \${err.message}\`);}}}}));if(loadedTiles===totalTiles){console.log(\`⏳ Склеєно \${loadedTiles}/\${totalTiles} фрагментів...\`);}await new Promise(resolve=>{canvas.toBlob((blob)=>{const blobUrl=window.URL.createObjectURL(blob);const link=document.createElement('a');link.href=blobUrl;link.download=fileName;document.body.appendChild(link);link.click();document.body.removeChild(link);window.URL.revokeObjectURL(blobUrl);resolve();},'image/jpeg',0.95);});canvas.width=0;canvas.height=0;console.timeEnd(\`page \${pageIdx+1}\`);};await Promise.all(Array(MAX_CONCURRENT_PAGES).fill(0).map(async()=>{while(pageQueue.length>0){const idx=pageQueue.shift();if(idx===undefined)return;await processPage(idx);}}));alert('🎉 Усі сторінки склеєні та завантажені (img-based)!\\n\\nВерсія: v1.2.1');}catch(err){console.error(err);alert('❌ Помилка: '+(err&&err.message?err.message:err)+'\\n\\n'+(err&&err.stack?err.stack:''));}})();`;
+        // Shared helpers as a string — concatenated into both bookmarklets.
+        // Defines: sleep, baseUrl, parseQueueTSV, sanitizeFs, extractBookFromDoc,
+        //          fetchObjectData, queueFileNameFor, downloadCanvasAsJpeg,
+        //          loadItemViaIframe.
+        const SHARED_PRELUDE = `
+            const TILE_SIZE = __TS__;
+            const MAX_CONCURRENT_TILES = __MCT__;
+            const MAX_RETRIES = __MR__;
+            const MAX_CONCURRENT_PAGES = __MCP__;
+            const REQUEST_TIMEOUT_MS = __RTMS__;
+            const VERSION = 'v1.2.1';
+
+            const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+            const baseUrl = window.location.origin === 'https://cud.prlib.ru'
+                ? 'https://cud.prlib.ru/private-content/fcgi-bin/iipsrv.fcgi'
+                : 'https://content.prlib.ru/fcgi-bin/iipsrv.fcgi';
+
+            // Parse TSV (\\t-delimited) string from window.prlib_queue.
+            // Columns: prlib_id, inventory_id, file_id, title.
+            // Lines without 4 fields or starting with '#' are skipped.
+            function parseQueueTSV(raw) {
+                const out = [];
+                if (typeof raw !== 'string') return out;
+                const lines = raw.split(/\\r?\\n/);
+                for (const line of lines) {
+                    const t = line.trim();
+                    if (!t || t.startsWith('#')) continue;
+                    const cols = line.split('\\t');
+                    if (cols.length < 4) continue;
+                    const [prlib_id, inventory_id, file_id, ...rest] = cols;
+                    out.push({
+                        prlib_id: prlib_id.trim(),
+                        inventory_id: inventory_id.trim(),
+                        file_id: file_id.trim(),
+                        title: rest.join('\\t').trim(),
+                    });
+                }
+                return out;
+            }
+
+            // Strip filesystem-hostile characters from a filename component.
+            function sanitizeFs(s) {
+                return String(s || '').replace(/[\\\\/:*?"<>|\\u0000-\\u001f]/g, '_').trim();
+            }
+
+            // Find <script> with the diva/jQuery.extend bootstrap and parse the JSON.
+            function extractBookFromDoc(doc, urlForRouting) {
+                const scripts = Array.from(doc.querySelectorAll('script'));
+                const target = scripts.find(s =>
+                    s.textContent &&
+                    s.textContent.includes('jQuery.extend') &&
+                    s.textContent.includes('diva')
+                );
+                if (!target) throw new Error('Тег script не знайдено');
+
+                const text = target.textContent;
+                const startIdx = text.indexOf('{');
+                let bookJson;
+                try {
+                    const endIdx = text.indexOf(');', startIdx);
+                    bookJson = JSON.parse(text.substring(startIdx, endIdx));
+                } catch (e) {
+                    let depth = 0, realEnd = -1;
+                    for (let i = startIdx; i < text.length; i++) {
+                        if (text[i] === '{') depth++;
+                        if (text[i] === '}') depth--;
+                        if (depth === 0 && text[i] === '}') { realEnd = i + 1; break; }
+                    }
+                    bookJson = JSON.parse(text.substring(startIdx, realEnd));
+                }
+
+                const isItem = urlForRouting.includes('/item/');
+                const book = isItem
+                    ? bookJson?.diva?.['1']?.options
+                    : bookJson?.diva?.settings;
+                if (!book || !book.objectData) throw new Error('Не вдалося знайти objectData');
+                return book;
+            }
+
+            async function fetchObjectData(book) {
+                const res = await fetch(book.objectData, { credentials: 'include' });
+                if (!res.ok) throw new Error('objectData HTTP ' + res.status);
+                return res.json();
+            }
+
+            // Build filename for a queue-driven download.
+            // Format: "РГИА-577-{inv}-{file}__NNN.jpg" (NNN: 001, 002, ...)
+            // Title is intentionally omitted — long Cyrillic titles get truncated
+            // by the OS and can clobber the page index.
+            function queueFileNameFor(meta, pageIdx /*, totalPages */) {
+                return 'РГИА-577-' + sanitizeFs(meta.inventory_id) +
+                    '-' + sanitizeFs(meta.file_id) +
+                    '__' + String(pageIdx + 1).padStart(3, '0') + '.jpg';
+            }
+
+            function downloadCanvasAsJpeg(canvas, fileName) {
+                return new Promise(resolve => {
+                    canvas.toBlob(blob => {
+                        const blobUrl = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+                        link.download = fileName;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(blobUrl);
+                        resolve();
+                    }, 'image/jpeg', 0.95);
+                });
+            }
+
+            // Load an item page into a hidden iframe (same-origin), wait for the
+            // diva bootstrap script to be present in its DOM, return { book, doc, dispose }.
+            async function loadItemViaIframe(prlibId) {
+                const url = window.location.origin + '/item/' + encodeURIComponent(prlibId);
+                const iframe = document.createElement('iframe');
+                iframe.style.cssText = 'position:fixed;left:-99999px;top:-99999px;width:1024px;height:768px;border:0;visibility:hidden;';
+                iframe.src = url;
+                document.body.appendChild(iframe);
+
+                const dispose = () => { try { iframe.remove(); } catch (e) {} };
+
+                try {
+                    await new Promise((ok, no) => {
+                        const tmt = setTimeout(() => no(new Error('iframe load timeout')), 60000);
+                        iframe.addEventListener('load', () => { clearTimeout(tmt); ok(); }, { once: true });
+                        iframe.addEventListener('error', () => { clearTimeout(tmt); no(new Error('iframe load error')); }, { once: true });
+                    });
+
+                    const deadline = Date.now() + 30000;
+                    let book = null, lastErr = null;
+                    while (Date.now() < deadline) {
+                        try {
+                            const doc = iframe.contentDocument;
+                            if (doc) book = extractBookFromDoc(doc, url);
+                            if (book) break;
+                        } catch (e) { lastErr = e; }
+                        await sleep(500);
+                    }
+                    if (!book) throw lastErr || new Error('Bootstrap script not found in iframe');
+                    return { book, dispose };
+                } catch (e) {
+                    dispose();
+                    throw e;
+                }
+            }
+        `;
+
+        // Tile fetcher (fetch-based) as a string. Returns a function `fetchTile(tile)`
+        // that fills the given canvas via ctx.drawImage on success.
+        const TILE_FETCHER_FETCH = `
+            async function fetchTile(tile, ctx) {
+                const ac = new AbortController();
+                const tmt = setTimeout(() => ac.abort(), REQUEST_TIMEOUT_MS * tile.attempts);
+                try {
+                    const res = await fetch(tile.url, {
+                        credentials: 'include',
+                        signal: ac.signal,
+                        headers: { 'Accept': 'image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5' },
+                    });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const ct = res.headers.get('Content-Type') || '';
+                    if (!ct.startsWith('image/')) throw new Error('Bad Content-Type: ' + ct);
+                    const blob = await res.blob();
+                    const head = new Uint8Array(await blob.slice(0, 3).arrayBuffer());
+                    if (head[0] !== 0xFF || head[1] !== 0xD8 || head[2] !== 0xFF) {
+                        throw new Error('Not JPEG (corrupted response)');
+                    }
+                    const bmp = await createImageBitmap(blob);
+                    ctx.drawImage(bmp, tile.x, tile.y);
+                } finally {
+                    clearTimeout(tmt);
+                }
+            }
+        `;
+
+        // Tile fetcher (img-based) as a string.
+        const TILE_FETCHER_IMG = `
+            async function fetchTile(tile, ctx) {
+                let tmt;
+                const img = await new Promise((ok, no) => {
+                    const im = new Image();
+                    im.crossOrigin = 'use-credentials';
+                    im.onload = () => {
+                        if (im.naturalWidth === 0 || im.naturalHeight === 0) {
+                            no(new Error('Not JPEG (broken 0x0)'));
+                        } else ok(im);
+                    };
+                    im.onerror = () => no(new Error('image load failed'));
+                    tmt = setTimeout(() => { im.src = ''; no(new Error('img timeout')); }, REQUEST_TIMEOUT_MS * tile.attempts);
+                    im.src = tile.url;
+                }).finally(() => clearTimeout(tmt));
+                ctx.drawImage(img, tile.x, tile.y);
+            }
+        `;
+
+        // Body shared by both bookmarklets — orchestrates queue vs. current-page mode
+        // and the per-page tile fetch loop. Expects `fetchTile` to be defined above.
+        const SHARED_MAIN = `
+            // Build a stitched canvas for one page and trigger a download.
+            async function processPage(book, pages, pageIdx, fileName) {
+                console.time('page ' + (pageIdx + 1));
+                const page = pages[pageIdx];
+                const maxZoomLevel = page.m;
+                const maxRes = page.d[page.d.length - 1];
+                const maxWidth = maxRes.w;
+                const maxHeight = maxRes.h;
+                const cols = Math.ceil(maxWidth / TILE_SIZE);
+                const rows = Math.ceil(maxHeight / TILE_SIZE);
+                const totalTiles = cols * rows;
+                console.log('📄 Сторінка ' + (pageIdx + 1) + '/' + pages.length +
+                    ' | Розмір: ' + maxWidth + 'x' + maxHeight + ' | Фрагментів: ' + totalTiles);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = maxWidth;
+                canvas.height = maxHeight;
+                const ctx = canvas.getContext('2d');
+
+                const tilesToFetch = [];
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        const tileIndex = row * cols + col;
+                        const tileUrl = baseUrl + '?FIF=' + book.imageDir + '/' + page.f +
+                            '&JTL=' + maxZoomLevel + ',' + tileIndex;
+                        tilesToFetch.push({ url: tileUrl, x: col * TILE_SIZE, y: row * TILE_SIZE, index: tileIndex });
+                    }
+                }
+
+                let loadedTiles = 0;
+                const STAGGER_MS = 300;
+                await Promise.all(Array(MAX_CONCURRENT_TILES).fill(0).map(async (_, workerIdx) => {
+                    await sleep(workerIdx * STAGGER_MS);
+                    let backoff = 5000;
+                    while (tilesToFetch.length > 0) {
+                        const tile = tilesToFetch.shift();
+                        if (tile === undefined) return;
+                        tile.attempts = (tile.attempts || 0) + 1;
+                        try {
+                            await fetchTile(tile, ctx);
+                            loadedTiles++;
+                            backoff = Math.max(5000, Math.floor(backoff / 2));
+                        } catch (err) {
+                            const badContent = err.message && (
+                                err.message.startsWith('Bad Content-Type') ||
+                                err.message.startsWith('Not JPEG')
+                            );
+                            if (tile.attempts < MAX_RETRIES) {
+                                tilesToFetch.push(tile);
+                                if (badContent) {
+                                    console.warn('⚠️ Фрагмент ' + tile.index +
+                                        ' corrupt — requeued (' + tile.attempts + '/' + MAX_RETRIES +
+                                        '), backoff ' + backoff + 'ms');
+                                    await sleep(backoff);
+                                    backoff = Math.min(backoff * 2, 30000);
+                                } else {
+                                    await sleep(Math.random() * 3000);
+                                }
+                            } else {
+                                console.error('❌ Фрагмент ' + tile.index +
+                                    ' не завантажено після ' + MAX_RETRIES + ' спроб: ' + err.message);
+                            }
+                        }
+                    }
+                }));
+
+                if (loadedTiles === totalTiles) {
+                    console.log('⏳ Склеєно ' + loadedTiles + '/' + totalTiles + ' фрагментів...');
+                }
+                await downloadCanvasAsJpeg(canvas, fileName);
+                canvas.width = 0;
+                canvas.height = 0;
+                console.timeEnd('page ' + (pageIdx + 1));
+            }
+
+            // Process ALL pages of one book using the configured page-concurrency.
+            async function processBook(book, pages, startPage, fileNameFor) {
+                const pageQueue = pages.map((_, i) => i).slice(startPage - 1);
+                await Promise.all(Array(MAX_CONCURRENT_PAGES).fill(0).map(async () => {
+                    while (pageQueue.length > 0) {
+                        const idx = pageQueue.shift();
+                        if (idx === undefined) return;
+                        await processPage(book, pages, idx, fileNameFor(idx, pages.length));
+                    }
+                }));
+            }
+
+            // Mode A: window.prlib_queue is a non-empty TSV — iterate queue items
+            //         one-by-one, ignoring the current page entirely.
+            const rawQueue = typeof window.prlib_queue === 'string' ? window.prlib_queue : '';
+            const queue = parseQueueTSV(rawQueue);
+            if (queue.length > 0) {
+                console.log('📦 Черга: ' + queue.length + ' елементів. Поточна сторінка ігнорується.');
+                let okCount = 0, failCount = 0;
+                for (let qi = 0; qi < queue.length; qi++) {
+                    const meta = queue[qi];
+                    console.group('▶️ [' + (qi + 1) + '/' + queue.length + '] ' + meta.prlib_id + ' — ' + meta.title);
+                    try {
+                        const { book, dispose } = await loadItemViaIframe(meta.prlib_id);
+                        try {
+                            const bookData = await fetchObjectData(book);
+                            const pages = bookData.pgs;
+                            await processBook(book, pages, 1, (idx, total) => queueFileNameFor(meta, idx, total));
+                            okCount++;
+                        } finally {
+                            dispose();
+                        }
+                    } catch (err) {
+                        failCount++;
+                        console.error('❌ Не вдалося обробити ' + meta.prlib_id + ': ' + (err && err.message ? err.message : err));
+                    }
+                    console.groupEnd();
+                }
+                alert('🎉 Черга оброблена. Успішно: ' + okCount + ', з помилками: ' + failCount + '.\\n\\nВерсія: ' + VERSION);
+                return;
+            }
+
+            // Mode B: no queue — classic single-book flow on the current page.
+            const book = extractBookFromDoc(document, window.location.href);
+            const bookData = await fetchObjectData(book);
+            const pages = bookData.pgs;
+            const startInput = prompt('✅ Знайдено ' + pages.length + ' сторінок.\\nЗ якої сторінки почати? (1 = з початку)\\n\\nВерсія: ' + VERSION, '1');
+            if (startInput === null) return;
+            let startPage = parseInt(startInput, 10);
+            if (!Number.isFinite(startPage) || startPage < 1 || startPage > pages.length) startPage = 1;
+            await processBook(book, pages, startPage, (idx) => String(idx + 1).padStart(5, '0') + '.jpg');
+            alert('🎉 Усі сторінки успішно склеєні та завантажені у МАКСИМАЛЬНІЙ роздільній здатності!\\n\\nВерсія: ' + VERSION);
+        `;
+
+        // Wrap the whole thing in the standard try/catch IIFE shell.
+        function buildBookmarkletSource(tileFetcherSrc) {
+            return [
+                '(async function () {',
+                '    try {',
+                            SHARED_PRELUDE,
+                            tileFetcherSrc,
+                            SHARED_MAIN,
+                '    } catch (err) {',
+                '        console.error(err);',
+                '        alert("❌ Помилка: " + (err && err.message ? err.message : err) + "\\n\\n" + (err && err.stack ? err.stack : ""));',
+                '    }',
+                '})();',
+            ].join('\n');
+        }
+
+        const BOOKMARKLET_SOURCE     = buildBookmarkletSource(TILE_FETCHER_FETCH);
+        const BOOKMARKLET_SOURCE_IMG = buildBookmarkletSource(TILE_FETCHER_IMG);
+
+        // ─────────────────────────────────────────────────────────────────
+        // Conservative minifier: strips // line comments and collapses
+        // runs of whitespace OUTSIDE of strings/templates/regexes.
+        // Good enough to shrink readable JS to a single-line bookmarklet.
+        // Not a real parser — keep the source ASI-safe (semicolons everywhere).
+        // ─────────────────────────────────────────────────────────────────
+        function minify(src) {
+            let out = '';
+            let i = 0;
+            const n = src.length;
+            while (i < n) {
+                const c = src[i];
+                const c2 = src[i + 1];
+
+                // Line comment
+                if (c === '/' && c2 === '/') {
+                    while (i < n && src[i] !== '\n') i++;
+                    continue;
+                }
+                // Block comment
+                if (c === '/' && c2 === '*') {
+                    i += 2;
+                    while (i < n && !(src[i] === '*' && src[i + 1] === '/')) i++;
+                    i += 2;
+                    continue;
+                }
+                // String literals: preserve verbatim
+                if (c === '"' || c === "'" || c === '`') {
+                    const quote = c;
+                    out += c;
+                    i++;
+                    while (i < n) {
+                        const ch = src[i];
+                        if (ch === '\\') {
+                            out += ch + (src[i + 1] || '');
+                            i += 2;
+                            continue;
+                        }
+                        out += ch;
+                        i++;
+                        if (ch === quote) break;
+                        // For template literals, ${...} can contain anything including
+                        // strings — but our templates here don't, so we don't recurse.
+                    }
+                    continue;
+                }
+                // Whitespace runs → single space, then trim around punctuation
+                if (c === ' ' || c === '\t' || c === '\n' || c === '\r') {
+                    let j = i;
+                    while (j < n && (src[j] === ' ' || src[j] === '\t' || src[j] === '\n' || src[j] === '\r')) j++;
+                    const prev = out[out.length - 1] || '';
+                    const next = src[j] || '';
+                    const ident = ch => /[A-Za-z0-9_$]/.test(ch);
+                    if (ident(prev) && ident(next)) out += ' ';
+                    i = j;
+                    continue;
+                }
+
+                out += c;
+                i++;
+            }
+            return out;
+        }
 
         let BOOKMARKLET_CODE, BOOKMARKLET_CODE_IMG;
 
         function applyConfig() {
             const ts = 256;
             const mct = Math.max(1, parseInt(document.getElementById('cfgMaxConcurrentTiles').value, 10) || 3);
-            const mr = Math.max(1, parseInt(document.getElementById('cfgMaxRetries').value, 10) || 3);
+            const mr  = Math.max(1, parseInt(document.getElementById('cfgMaxRetries').value, 10) || 3);
             const mcp = Math.max(1, parseInt(document.getElementById('cfgMaxConcurrentPages').value, 10) || 1);
             const rtms = Math.max(1000, parseInt(document.getElementById('cfgRequestTimeout').value, 10) || 30000);
+
             const subst = s => s
                 .replaceAll('__TS__', ts)
                 .replaceAll('__MCT__', mct)
@@ -343,9 +776,15 @@
                 .replaceAll('__MR__', mr)
                 .replaceAll('__MCP__', mcp)
                 .replaceAll('__RTMS__', rtms);
-            BOOKMARKLET_CODE = subst(BOOKMARKLET_TEMPLATE);
-            BOOKMARKLET_CODE_IMG = subst(BOOKMARKLET_TEMPLATE_IMG);
-            document.getElementById('bookmarkletDrag').href = BOOKMARKLET_CODE;
+
+            // encodeURI keeps most chars; but '#' would start a fragment in the URL,
+            // and '%' must itself be percent-escaped first.
+            const toBookmarklet = src => 'javascript:' +
+                encodeURI(minify(subst(src))).replace(/#/g, '%23');
+            BOOKMARKLET_CODE     = toBookmarklet(BOOKMARKLET_SOURCE);
+            BOOKMARKLET_CODE_IMG = toBookmarklet(BOOKMARKLET_SOURCE_IMG);
+
+            document.getElementById('bookmarkletDrag').href    = BOOKMARKLET_CODE;
             document.getElementById('bookmarkletDragImg').href = BOOKMARKLET_CODE_IMG;
         }
 
