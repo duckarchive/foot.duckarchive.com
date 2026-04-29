@@ -428,8 +428,18 @@
                 return book;
             }
 
+            // cud.prlib.ru serves protected content and requires session cookies.
+            // content.prlib.ru replies with Access-Control-Allow-Origin: * which
+            // forbids credentialed requests — so send cookies only for cud hosts.
+            function credsFor(url) {
+                try {
+                    return new URL(url, window.location.href).hostname === 'cud.prlib.ru'
+                        ? 'include' : 'omit';
+                } catch (e) { return 'omit'; }
+            }
+
             async function fetchObjectData(book) {
-                const res = await fetch(book.objectData, { credentials: 'include' });
+                const res = await fetch(book.objectData, { credentials: credsFor(book.objectData) });
                 if (!res.ok) throw new Error('objectData HTTP ' + res.status);
                 return res.json();
             }
@@ -505,7 +515,7 @@
                 const tmt = setTimeout(() => ac.abort(), REQUEST_TIMEOUT_MS * tile.attempts);
                 try {
                     const res = await fetch(tile.url, {
-                        credentials: 'include',
+                        credentials: credsFor(tile.url),
                         signal: ac.signal,
                         headers: { 'Accept': 'image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5' },
                     });
@@ -531,7 +541,10 @@
                 let tmt;
                 const img = await new Promise((ok, no) => {
                     const im = new Image();
-                    im.crossOrigin = 'use-credentials';
+                    // 'use-credentials' only on cud.* (cookies-required + non-'*' CORS).
+                    // For content.* the server replies ACAO:* which forbids credentials,
+                    // so we go anonymous (canvas stays untainted in both cases).
+                    im.crossOrigin = credsFor(tile.url) === 'include' ? 'use-credentials' : 'anonymous';
                     im.onload = () => {
                         if (im.naturalWidth === 0 || im.naturalHeight === 0) {
                             no(new Error('Not JPEG (broken 0x0)'));
@@ -673,7 +686,7 @@
             if (startInput === null) return;
             let startPage = parseInt(startInput, 10);
             if (!Number.isFinite(startPage) || startPage < 1 || startPage > pages.length) startPage = 1;
-            await processBook(book, pages, startPage, (idx) => String(idx + 1).padStart(5, '0') + '.jpg');
+            await processBook(book, pages, startPage, (idx) => String(idx + 1).padStart(3, '0') + '.jpg');
             alert('🎉 Усі сторінки успішно склеєні та завантажені у МАКСИМАЛЬНІЙ роздільній здатності!\\n\\nВерсія: ' + VERSION);
         `;
 
